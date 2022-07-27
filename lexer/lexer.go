@@ -6,25 +6,58 @@ import (
 
 type Lexer struct {
 	input        string
-	position     int // 最後に読んだ位置
 	readPosition int // 次に読む位置
 	ch           byte
 }
 
 func New(input string) *Lexer {
-	l := &Lexer{input: input, position: -1, readPosition: 0, ch: 0}
+	l := &Lexer{input: input, readPosition: 0, ch: 0}
 	return l
 }
 
-func (l *Lexer) readChar() {
+func (l *Lexer) nextChar() byte {
 	if l.readPosition >= len(l.input) {
-		l.ch = 0
-	} else {
-		l.ch = l.input[l.readPosition]
+		return 0
 	}
+	return l.input[l.readPosition]
+}
 
-	l.position = l.readPosition
+func (l *Lexer) readChar() {
+	l.ch = l.nextChar()
 	l.readPosition++
+}
+
+func isLetter(ch byte) bool {
+	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_'
+}
+
+func isDigit(ch byte) bool {
+	return '0' <= ch && ch <= '9'
+}
+
+func (l *Lexer) readIdentifier() string {
+	start := l.readPosition - 1
+	for isLetter(l.nextChar()) {
+		l.readChar()
+	}
+	return l.input[start:l.readPosition]
+}
+
+func (l *Lexer) readNumber() string {
+	start := l.readPosition - 1
+	for isDigit(l.nextChar()) {
+		l.readChar()
+	}
+	return l.input[start:l.readPosition]
+}
+
+func (l *Lexer) skipWhitespace() {
+	nc := l.nextChar()
+
+	for nc == ' ' || nc == '\t' || nc == '\n' || nc == '\r' {
+		l.readChar()
+		nc = l.nextChar()
+	}
 }
 
 func newToken(tokenType token.TokenType, ch byte) token.Token {
@@ -32,6 +65,7 @@ func newToken(tokenType token.TokenType, ch byte) token.Token {
 }
 
 func (l *Lexer) NextToken() token.Token {
+	l.skipWhitespace()
 	l.readChar()
 
 	var tok token.Token
@@ -56,6 +90,16 @@ func (l *Lexer) NextToken() token.Token {
 	case 0:
 		tok.Literal = ""
 		tok.Type = token.EOF
+	default:
+		if isLetter(l.ch) {
+			tok.Literal = l.readIdentifier()
+			tok.Type = token.LookUpIdentifier(tok.Literal)
+		} else if isDigit(l.ch) {
+			tok.Literal = l.readNumber()
+			tok.Type = token.INT
+		} else {
+			tok = newToken(token.ILLEGAL, l.ch)
+		}
 	}
 
 	return tok
