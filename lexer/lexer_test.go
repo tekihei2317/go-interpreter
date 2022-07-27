@@ -155,3 +155,21 @@ if (5 < 10) {
 	l := New(input)
 	runTests(l, t, tests)
 }
+
+func TestNextToken5(t *testing.T) {
+	input := "10 == 10; 10 != 9;"
+
+	tests := []TestCase{
+		{token.INT, "10"},
+		{token.EQ, "=="},
+		{token.INT, "10"},
+		{token.SEMICOLON, ";"},
+		{token.INT, "10"},
+		{token.NOT_EQ, "!="},
+		{token.INT, "9"},
+		{token.SEMICOLON, ";"},
+	}
+
+	l := New(input)
+	runTests(l, t, tests)
+}
